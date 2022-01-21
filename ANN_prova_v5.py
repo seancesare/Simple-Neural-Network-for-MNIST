@@ -8,7 +8,6 @@ class ANN_for_MNIST():
     Artificial Neural Network class built for the hand written numbers \n
     classification task, using the MNIST dataset.    
     '''
-    # work in progress  ;-) !
     def __init__(self, layers: list = [784,14,7,10]):
         '''
         Initialization of the 3 Weight matrices
@@ -144,13 +143,10 @@ class ANN_for_MNIST():
         # print(f"I delta errors sono i seguenti dal primo al terzo vettore: {self.delta1},\n\n {self.delta2},\n\n {self.delta3}")
 
     def grad_wrt_weights(self):
+        # Gradient with respect to the weights' matrices and biases' matrices respectively
         self.grad3 = self.delta3.reshape(len(self.delta3),1) @ self.x2.reshape(1,len(self.x2))
         self.grad2 = self.delta2.reshape(len(self.delta2),1) @ self.x1.reshape(1,len(self.x1))
         self.grad1 = self.delta1.reshape(len(self.delta1),1) @ self.x0.reshape(1,len(self.x0))
-
-        # print(f"La forma di grad1 è {np.shape(self.grad1)}, i valori sono {self.grad1}\n\n")
-        # print(f"La forma di grad2 è {np.shape(self.grad2)}, i valori sono {self.grad2}\n\n")
-        # print(f"La forma di grad3 è {np.shape(self.grad3)}, i valori sono {self.grad3}\n\n")
 
         self.grad_b3 = self.delta3  # gradient for the bias is delta_i * x_j where x_j is 1, 
         self.grad_b2 = self.delta2  # so it's just the vector of the delta error itself
@@ -159,7 +155,18 @@ class ANN_for_MNIST():
     def save_weights(self):
         '''Saves the weights' matrices into a csv file'''
         pass
-
+    
+    def test_accuracy(self, images, labels):
+        '''It takes a list of images and then it simply computes the rate between the number of\n
+        correct answers over all the answers.'''
+        accuracy_counter = 0
+        for idx, image in enumerate(images):
+            self.forward_step(image)
+            if np.argmax(self.output) == labels[idx]:
+                accuracy_counter += 1
+        precision = accuracy_counter/len(images)
+        return precision
+                  
         
 class Trainer_mnist():
 
@@ -256,7 +263,6 @@ def print_ascii_mnist(images, labels, idx: int = 0, with_label: bool = True):
     in range(256), an image in ascii characters.\n
     It takes the index of the image in input.
     '''
-
     val_lum = ".,:;?%#@"  # string with 8 vals of luminosity ascii char
 
     for i in range(28):
@@ -291,17 +297,6 @@ def normalization_img(images: list):
     return [np.array(images[i])/255 for i in range(len(images))]
 
 def main():
-
-    # layers = [784, 10, 10, 10]  # nn with 784 inputs
-    # # prints a nxm matrix, values chosen by a normal distrib
-    # w1 = np.random.randn(layers[1], layers[0]) # matrice 10x784
-    # print(w1.shape) # 10x784
-    # x = np.array(images[4])
-    # print(w1@x)
-
-    #print(ANN_for_MNIST.relu(5))
-    #display_image_with_matplotlib(images[5])
-    #print_ascii_mnist(0, True)
 
     # Ricorda di creare una classe per il dataset sottostante
     samples_path = ".\samples"
