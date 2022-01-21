@@ -156,7 +156,7 @@ class ANN_for_MNIST():
         '''Saves the weights' matrices into a csv file'''
         pass
     
-    def test_accuracy(self, images, labels):
+    def test_accuracy(self, images, labels) -> float:
         '''It takes a list of images and then it simply computes the rate between the number of\n
         correct answers over all the answers.'''
         accuracy_counter = 0
