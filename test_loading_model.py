@@ -12,10 +12,16 @@ def main():
     # Uploading and normalize images and labels...
     samples_path = ".\samples"
     mndata = MNIST(samples_path)
-    images, labels = mndata.load_training()
-    norm_images = normalization_img(images)
 
-    print(Modello.test_accuracy(norm_images, labels))
+    imgs, labels = mndata.load_training()
+    t_imgs, t_labels = mndata.load_testing()
+    
+    norm_imgs = normalization_img(imgs)
+    norm_t_imgs = normalization_img(t_imgs)
+
+    print(Modello.test_accuracy(norm_imgs, labels))
+    print(Modello.test_accuracy(norm_t_imgs, t_labels))
+
 
 
 if __name__ == "__main__":

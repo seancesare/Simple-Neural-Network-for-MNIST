@@ -163,29 +163,22 @@ class ANN_for_MNIST():
     
     def load_weights(self, outfile_name: str):
         '''Loads the weights and biases matrices and arrays'''
-        # npzfile = np.load(outfile_name)
-        # self.w1 = npzfile['w1']
-        # self.b1 = npzfile['b1']
-        # self.w2 = npzfile['w2']
-        # self.b2 = npzfile['b2']
-        # self.w3 = npzfile['w3']
-        # self.b3 = npzfile['b3']
-        # layers = [28*28, len(self.b1), len(self.b2), len(self.b3)]
-        # self.layers = layers
-
         with np.load(outfile_name) as npzfile:
+            # loading of the weights
             self.w1 = npzfile['w1']
             self.b1 = npzfile['b1']
             self.w2 = npzfile['w2']
             self.b2 = npzfile['b2']
             self.w3 = npzfile['w3']
             self.b3 = npzfile['b3']
+
+            # setting layers'numbers correctly
             layers = [28*28, len(self.b1), len(self.b2), len(self.b3)]
             self.layers = layers
 
-
     def save_model(self):
         '''Saves this instance of the model using pickle'''
+        # not yet implemented, dunno if it will ever be lol.
         pass
     
     def test_accuracy(self, images, labels) -> float:
@@ -197,8 +190,18 @@ class ANN_for_MNIST():
             if np.argmax(self.output) == labels[idx]:
                 accuracy_counter += 1
         precision = accuracy_counter/len(images)
-        print(f"\n### The accuracy of the model is: {precision*100}% ###\n")
         return precision
+
+    def guess(self, norm_img, label: int = None):
+        '''Takes one normalized image and label as input, returns the guess'''
+        self.forward_step(norm_img)
+        guessed_num = np.argmax(self.output)
+        if guessed_num == label:
+            print(f"Guessed number was {guessed_num}, the correct one is {label}... Looks I was right B-)")
+        else:
+            print(f"Guessed number was {guessed_num}, the correct one is {label}... Oopsie :)!")
+        return guessed_num
+
                   
         
 class Trainer_mnist():
