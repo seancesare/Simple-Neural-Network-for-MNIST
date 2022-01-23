@@ -246,10 +246,9 @@ class Trainer_mnist():
 
     def online_mode_train_e(self, images, labels, print_infos = False):
         "Takes as inputs the images and labels, computes the training with quadratic error"
+        print("Starting training :) ...")
         for epoch in range(self.epochs):
-            
             accuracy_counter = 0
-
             for k in range(self.L):
                 out = self.Model.forward_step(images[k])
                 self.Model.backward_step_entropy(labels[k])
@@ -271,10 +270,10 @@ class Trainer_mnist():
                 if print_infos:
                     if not k % 5000:
                         print(f"--- Label (correct value) is: {labels[k]},\n--- predicted value is: {np.argmax(out)}")
-                        print(f"The quadratic loss, on {k}-th iteration, epoch #{epoch} is: { self.Model.quadratic_loss(y=labels[k]):.4}")
-                        print(f"The entropic loss, on {k}-th iteration, epoch #{epoch} is: {self.Model.entropy_loss(y=labels[k]):.4}\n")
+                        print(f"The quadratic loss, on {k}-th iteration, epoch #{epoch} is: { self.Model.quadratic_loss(y=labels[k]):.6}")
+                        print(f"The entropic loss, on {k}-th iteration, epoch #{epoch} is: {self.Model.entropy_loss(y=labels[k]):.6}\n")
             # printing accuracy and stuff...
-            print(f"\n\n\n+++++++++ Accuracy (#number of correct guesses over every guess) for the {epoch}-th epoch was: {accuracy_counter*100/self.L :.4}% ++++++++\n\n\n\n")
+            print(f"\n\n+++++++++ Accuracy (#number of correct guesses over every guess) for the {epoch}-th epoch was: {accuracy_counter*100/self.L :.4}% ++++++++\n\n")
 
     def batch_mode_train(self):
         pass
