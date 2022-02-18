@@ -8,22 +8,43 @@ class ANN_for_MNIST():
     Artificial Neural Network class built for the hand written numbers \n
     classification task, using the MNIST dataset.    
     '''
-    def __init__(self, layers: list = [784,20,15,10], load_file: str = None):
+
+    def __init__(self, layers: list = [784,20,15,10], alpha: float = 1, beta: float = 0, load_file: str = None):
         '''
-        Initialization of the 3 Weight matrices and biases
+        Initialization of the 3 Weight matrices and biases.
+
+        Alpha and beta parameters for shaping the normal distribution to one's desire,\n
+        respectively a multiplying factor and an addend.\n
+        (e.g. for greater weights increase alpha, for increasing the number\n of positive weights increase beta, etc.)
         '''
         if load_file:
             self.load_weights(load_file)
+
+            self.grad1 = np.zeros_like(self.w1)
+            self.grad2 = np.zeros_like(self.w2)
+            self.grad3 = np.zeros_like(self.w3)   
+
+            self.grad_b1 = np.zeros_like(self.b1)  
+            self.grad_b2 = np.zeros_like(self.b2) 
+            self.grad_b3 = np.zeros_like(self.b3)  
         else:
             self.layers = layers
-            self.w1 = np.random.randn(layers[1], layers[0]) # 14x784    |
-            self.w2 = np.random.randn(layers[2], layers[1]) # 7x14      | <-- matrices' dimensions
-            self.w3 = np.random.randn(layers[3], layers[2]) # 10x7      |
+            self.w1 = (alpha * np.random.randn(layers[1], layers[0]) ) + beta  # 14x784    |
+            self.w2 = (alpha * np.random.randn(layers[2], layers[1]) ) + beta  # 7x14      | <-- matrices' dimensions
+            self.w3 = (alpha * np.random.randn(layers[3], layers[2]) ) + beta  # 10x7      |
             
-            self.b1 = np.random.randn(layers[1])        # |  
-            self.b2 = np.random.randn(layers[2])        # | <--- Biases
-            self.b3 = np.random.randn(layers[3])        # |
-        
+            self.b1 = (alpha * np.random.randn(layers[1]) ) + beta       # |  
+            self.b2 = (alpha * np.random.randn(layers[2]) ) + beta       # | <--- Biases
+            self.b3 = (alpha * np.random.randn(layers[3]) ) + beta       # |
+
+            self.grad1 = np.zeros_like(self.w1)
+            self.grad2 = np.zeros_like(self.w2)
+            self.grad3 = np.zeros_like(self.w3)   
+
+            self.grad_b1 = np.zeros_like(self.b1)  
+            self.grad_b2 = np.zeros_like(self.b2) 
+            self.grad_b3 = np.zeros_like(self.b3)    
+
     def relu(self, a: np.ndarray):
         '''
         Rectified Linear Unit (or ReLU in short). \n
@@ -111,7 +132,7 @@ class ANN_for_MNIST():
         # Computation of delta errors in the output layer (derivative of the err. func. wrt activation)
         for i, output_i in enumerate(self.output):
             if i == label:
-                self.delta3[i] = output_i * np.square(1 - output_i) 
+                self.delta3[i] = - output_i * np.square(1 - output_i) 
             else:
                 self.delta3[i] = output_i * output_i * (1 - output_i)
         
@@ -152,6 +173,26 @@ class ANN_for_MNIST():
         self.grad_b3 = self.delta3  # gradient for the bias is delta_i * x_j where x_j is 1, 
         self.grad_b2 = self.delta2  # so it's just the vector of the delta error itself
         self.grad_b1 = self.delta1
+
+    def grad_wrt_weights_acc(self):
+        # Gradient accumulator with respect to the weights' matrices and biases' matrices respectively
+        self.grad3 += self.delta3.reshape(len(self.delta3),1) @ self.x2.reshape(1,len(self.x2))
+        self.grad2 += self.delta2.reshape(len(self.delta2),1) @ self.x1.reshape(1,len(self.x1))
+        self.grad1 += self.delta1.reshape(len(self.delta1),1) @ self.x0.reshape(1,len(self.x0))
+
+        self.grad_b3 += self.delta3  # gradient for the bias is delta_i * x_j where x_j is 1, 
+        self.grad_b2 += self.delta2  # so it's just the vector of the delta error itself
+        self.grad_b1 += self.delta1
+
+    def zero_grad(self):
+        self.grad3 = np.zeros_like(self.grad3)
+        self.grad2 = np.zeros_like(self.grad2)
+        self.grad1 = np.zeros_like(self.grad1)
+
+        self.grad_b3 = np.zeros_like(self.grad_b3)  
+        self.grad_b2 = np.zeros_like(self.grad_b2)
+        self.grad_b1 = np.zeros_like(self.grad_b1)
+
     
     def save_weights(self, outfile_name: str):
         '''Saves weights and biases into a file using numpy.savez function'''
@@ -175,11 +216,6 @@ class ANN_for_MNIST():
             # setting layers'numbers correctly
             layers = [28*28, len(self.b1), len(self.b2), len(self.b3)]
             self.layers = layers
-
-    def save_model(self):
-        '''Saves this instance of the model using pickle'''
-        # not yet implemented, dunno if it will ever be lol.
-        pass
     
     def test_accuracy(self, images, labels) -> float:
         '''It takes a list of images and then it simply computes the rate between the number of\n
@@ -232,7 +268,7 @@ class Trainer_mnist():
                 self.Model.b3 = self.Model.b3 - self.lr * self.Model.grad_b3
 
                 # printing out some infos...
-                if not k % 3000:
+                if not k % 10_000:
                     print(f"Activation in last layer is: {self.Model.a3}")
                     print(f"Output is: {self.Model.output}")
                     print(f"Delta3 is: {self.Model.delta3}")
@@ -275,12 +311,88 @@ class Trainer_mnist():
             # printing accuracy and stuff...
             print(f"\n\n+++++++++ Accuracy (#number of correct guesses over every guess) for the {epoch}-th epoch was: {accuracy_counter*100/self.L :.4}% ++++++++\n\n")
 
-    def batch_mode_train(self):
-        pass
+    def minibatch_mode_train_e(self, images, labels, batch_size, print_infos = False):
+        accuracy = np.zeros((self.epochs, 1))
+        #risk = np.zeros((self.epochs, 1)) 
+        for epoch in range(self.epochs):
+            accuracy_counter = 0
+            for k in range(self.L):
 
-    def mini_batch_train(self):
-        pass
+                out = self.Model.forward_step(images[k])
+                self.Model.backward_step_entropy(labels[k])
+                self.Model.grad_wrt_weights_acc()
 
+                if not k % batch_size:
+                    self.Model.w1 = self.Model.w1 - self.lr * self.Model.grad1      # Updating the weights 
+                    self.Model.w2 = self.Model.w2 - self.lr * self.Model.grad2
+                    self.Model.w3 = self.Model.w3 - self.lr * self.Model.grad3
+
+                    self.Model.b1 = self.Model.b1 - self.lr * self.Model.grad_b1    # Updating the biases
+                    self.Model.b2 = self.Model.b2 - self.lr * self.Model.grad_b2
+                    self.Model.b3 = self.Model.b3 - self.lr * self.Model.grad_b3
+
+                    # We must zero all entries in the gradient for next batch
+                    self.Model.zero_grad()
+                
+                # increase the counter whenever the model is right
+                if labels[k] == np.argmax(out):
+                    accuracy_counter += 1 
+
+                #risk accumulation
+                #loss = self.Model.entropy_loss(y=labels[k])
+                #risk[epoch] = loss
+            
+                # printing out some infos...
+                if print_infos:
+                    if not k % 5000:
+                        print(f"--- Label (correct value) is: {labels[k]},\n--- predicted value is: {np.argmax(out)}")
+                        print(f"The quadratic loss, on {k}-th iteration, epoch #{epoch} is: { self.Model.quadratic_loss(y=labels[k]):.6}")
+                        print(f"The entropic loss, on {k}-th iteration, epoch #{epoch} is: {self.Model.entropy_loss(y=labels[k]):.6}\n")
+            
+            # printing accuracy and stuff...
+            print(f"\n\n+++++++++ Accuracy (#number of correct guesses over every guess) for the {epoch}-th epoch was: {accuracy_counter*100/self.L :.4}% ++++++++\n\n")
+            accuracy[epoch] = accuracy_counter * 100 / self.L
+        return accuracy
+
+
+    def minibatch_mode_train_q(self, images, labels, batch_size, print_infos = False):
+        accuracy = np.zeros((self.epochs, 1))
+        for epoch in range(self.epochs):
+            accuracy_counter = 0
+            for k in range(self.L):
+
+                out = self.Model.forward_step(images[k])
+                self.Model.backward_step_quadratic(labels[k])
+                self.Model.grad_wrt_weights_acc()
+
+                if not k % batch_size:
+                    self.Model.w1 = self.Model.w1 - self.lr * self.Model.grad1      # Updating the weights 
+                    self.Model.w2 = self.Model.w2 - self.lr * self.Model.grad2
+                    self.Model.w3 = self.Model.w3 - self.lr * self.Model.grad3
+
+                    self.Model.b1 = self.Model.b1 - self.lr * self.Model.grad_b1    # Updating the biases
+                    self.Model.b2 = self.Model.b2 - self.lr * self.Model.grad_b2
+                    self.Model.b3 = self.Model.b3 - self.lr * self.Model.grad_b3
+
+                    # We must zero all entries in the gradient for next batch
+                    self.Model.zero_grad()
+                
+                # increase the counter whenever the model is right
+                if labels[k] == np.argmax(out):
+                    accuracy_counter += 1 
+
+                # printing out some infos...
+                if print_infos:
+                    if not k % 5000:
+                        print(f"--- Label (correct value) is: {labels[k]},\n--- predicted value is: {np.argmax(out)}")
+                        print(f"Output is: \n{out}\n")
+                        print(f"The quadratic loss, on {k}-th iteration, epoch #{epoch} is: { self.Model.quadratic_loss(y=labels[k]):.6}")
+                        print(f"The entropic loss, on {k}-th iteration, epoch #{epoch} is: {self.Model.entropy_loss(y=labels[k]):.6}\n")
+            # printing accuracy and stuff...
+            print(f"\n\n+++++++++ Accuracy (#number of correct guesses over every guess) for the {epoch}-th epoch was: {accuracy_counter*100/self.L :.4}% ++++++++\n\n")
+            accuracy[epoch] = accuracy_counter * 100 / self.L
+        return accuracy
+    
 
 def display_image_with_matplotlib(image: list):
     '''
@@ -314,9 +426,48 @@ def print_ascii_mnist(images, labels, idx: int = 0, with_label: bool = True):
 
 def normalization_img(images: list):
     '''
-    Function for normalizing pixels values scaling them from [0;255] to [0;1]
+    Function for normalizing pixels values, scaling them from [0;255] to [0;1]
     '''
     return [np.array(images[i])/255 for i in range(len(images))]
+
+def func_plot():
+    # Prepare the  plot
+    ax = plt.gca()
+    # Label of axes
+    steps = np.linspace(-1, 2, 100)
+    plt.ylabel('accuracy [%]')
+    plt.xlabel('epochs')
+    g, = plt.plot([], [])
+    return ax, g
+
+#Update function for plotting a curve
+def update_line(g, x, y, ax):
+    g.set_xdata(np.append(g.get_xdata(), x))
+    g.set_ydata(np.append(g.get_ydata(), y))
+    ax.relim()
+    ax.autoscale_view(True,True,True)
+    plt.draw()
+    plt.pause(0.001)
+
+def plot_curve(accuracy: list):
+    '''
+    Function for plotting a curve (accuracy in particular, 
+    but could also be used for plotting risk for instance).
+    epochs
+    '''
+    # Setup for plotting
+    font = {'family': 'serif',
+            'color':  'darkred',
+            'weight': 'normal',
+            'size': 16, }   
+    ax, g = func_plot()
+    # Divide the number of epochs in 'div' parts
+    div = 150  # ???
+    vec_plot = np.around(np.linspace(0, len(accuracy), div, dtype=int, endpoint=False))
+    for i in vec_plot:
+        update_line(g, i, accuracy[i], ax)
+    plt.show()
+
 
 def main():
 
@@ -327,18 +478,22 @@ def main():
     norm_images = normalization_img(images)
 
     # parameters for the trainer...
-    lr = 0.005 
-    epochs = 30
-    layers = [28*28, 25, 15, 10]    
+    lr = 0.005
+    epochs = 5
+    batch_size = 10
+    layers = [28*28, 20, 15, 10]    
     # some good parameter for a simple yet effective model could be 25 and 15 for the 2 hidden layers, and 0.005 for lr
 
-    Modello = ANN_for_MNIST(layers)
+    # setting up model and trainer
+    Modello = ANN_for_MNIST(layers, 0.02)
     Trainer = Trainer_mnist(norm_images, labels, lr, epochs, Modello)
-    Trainer.online_mode_train_q(norm_images, labels)
-
+    
+    # training and plotting accuracy!
+    accuracy = Trainer.minibatch_mode_train_q(norm_images, labels, batch_size, print_infos=True)
+    plot_curve(accuracy)
+    
+    
 
 if __name__ == "__main__":
     main()
 
-
-   
